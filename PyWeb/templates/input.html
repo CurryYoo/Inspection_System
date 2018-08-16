@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <title>测试</title>
+    </head>
+    <body>
+
+        <div id="section">
+            <button id="btn" type="add" onclick="btn_click()">添加</button>
+            <br>
+            <form name="form1" action="/audit/submit/" method="get">
+                <input type="submit" value="提交">
+                <br>
+                <h2>名称</h2>
+                <input type="text" name="name" size="20"/>
+                <br>
+
+                <h2>巡检项目</h2>
+                <input type="text" id="txt" name = "input0"/>
+
+                <br>
+                <select name="type0">
+                    <option value="yes">yes</option>
+                    <option value="no">no</option>
+                </select>
+
+
+            </form>
+        </div>
+
+    </body>
+</html>
+<script type="text/javascript">
+    var btn = document.getElementById('btn');  //获取button的id
+    var txt = document.getElementById("txt");   //获取input的id
+    var input = 1;
+    function submit() {
+        document.form1.submit();
+    }
+    function btn_click(){   //为btn绑定点击事件
+        var newTxt = document.createElement('input');   //创建一个input元素
+        newTxt.setAttribute("type","text");  //为该元素设置属性值
+        newTxt.setAttribute("name", "input" + input);
+        var newSelect = document.createElement('select');
+        newSelect.setAttribute("type", "select");
+        newSelect.setAttribute("name", "select" + input);
+
+        newSelect.options.add(new Option("yes", "yes"));
+        newSelect.options.add(new Option("no", "no"));
+
+        input++;
+        //document.body.appendChild(newTxt);   //将创建的input这个节点追加到body后面
+        //document.body.appendChild(newSelect);
+        document.form1.appendChild(newTxt);
+        document.form1.appendChild(newSelect);
+
+        newTxt.style.display = "block";  //给input设置block属性
+        newTxt.style.marginTop = "20px";      //marginTop距离上一个输入框的距离
+    };
+
+
+</script>
+
