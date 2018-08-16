@@ -1,0 +1,9 @@
+﻿<resources>
+    <string name="app_name">巡检系统</string>
+
+    <string name="scan_text">放入框内, 自动扫描</string>
+
+    <string name="switch1_name">指示灯是否正常</string>
+    <string name="switch2_name">有无异响（是否正常）</string>
+    <string name="button1_name">提交</string>
+</resources>
