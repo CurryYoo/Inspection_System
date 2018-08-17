@@ -2,15 +2,15 @@
 <html>
     <head>
         <meta charset="utf-8"/>
-        <title>测试</title>
+        <title>添加巡检项目</title>
     </head>
     <body>
 
         <div id="section">
-            <button id="btn" type="add" onclick="btn_click()">添加</button>
-            <br>
+
             <form name="form1" action="/audit/submit/" method="get">
                 <input type="submit" value="提交">
+                <button id="btn" type="button" onclick="btn_click()">添加</button>
                 <br>
                 <h2>名称</h2>
                 <input type="text" name="name" size="20"/>
@@ -21,10 +21,9 @@
 
                 <br>
                 <select name="type0">
-                    <option value="yes">yes</option>
-                    <option value="no">no</option>
+                    <option value="yes">勾选项</option>
+                    <option value="no">填写项</option>
                 </select>
-
 
             </form>
         </div>
@@ -44,10 +43,10 @@
         newTxt.setAttribute("name", "input" + input);
         var newSelect = document.createElement('select');
         newSelect.setAttribute("type", "select");
-        newSelect.setAttribute("name", "select" + input);
+        newSelect.setAttribute("name", "type" + input);
 
-        newSelect.options.add(new Option("yes", "yes"));
-        newSelect.options.add(new Option("no", "no"));
+        newSelect.options.add(new Option("勾选项", "yes"));
+        newSelect.options.add(new Option("填写项", "no"));
 
         input++;
         //document.body.appendChild(newTxt);   //将创建的input这个节点追加到body后面
@@ -56,9 +55,7 @@
         document.form1.appendChild(newSelect);
 
         newTxt.style.display = "block";  //给input设置block属性
-        newTxt.style.marginTop = "20px";      //marginTop距离上一个输入框的距离
+        newTxt.style.marginTop = "10px";      //marginTop距离上一个输入框的距离
     };
 
-
 </script>
-

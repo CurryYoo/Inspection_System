@@ -1,54 +1,84 @@
+import io
 import json
 
+import xlwt as xlwt
 from django.shortcuts import render, render_to_response
 from django.http import HttpResponse
 import pymysql
 from django.views.decorators.csrf import csrf_exempt
 
 
-def index(request):
-    return HttpResponse("hello.")
-
-
 def home(request):
-    return render_to_response("test1.html")
+    return render_to_response("home.html")
+
+
+def display(request):
+    sql = ""
+    db = pymysql.connect("localhost", "root", "root", "audit")
+    cursor = db.cursor()
+    cursor.execute(sql)
+    result = cursor.fetchall()
+
+    response = HttpResponse(content_type='application/vnd.ms-excel')  # 指定返回为excel文件
+    response['Content-Disposition'] = 'attachment;filename=export_agencycustomer.xls'  # 指定返回文件名
+    wb = xlwt.Workbook(encoding='utf-8')  # 设定编码类型为utf8
+    sheet = wb.add_sheet(u'类别')  # excel里添加类别
+
+    sheet.write(0, 0, 'id')
+    sheet.write(0, 1, '名字')
+
+    row = 1
+    for list in result:
+        sheet.write(row, 0, list['id'])
+        sheet.write(row, 1, list['label'])
+        row = row + 1
+
+    output = io.BytesIO()
+
+    wb.save(output)
+    output.seek(0)
+    response.write(output.getvalue())
+    return response
+
+
+def add(request):
+    return render_to_response("input.html")
 
 
 def submit(request):
-    name = request.GET['name']
-    audit1 = request.GET['audit1']
-    audit2 = request.GET['audit2']
-    type1 = request.GET['type1']
-    type2 = request.GET['type2']
-    if (type1 == "yes"):
-        t1 = "TINYINT(1)"
-    else:
-        t1 = "CHAR(20)"
-    if (type2 == "yes"):
-        t2 = "TINYINT(1)"
-    else:
-        t2 = "CHAR(20)"
-
     db = pymysql.connect("localhost", "root", "root", "audit")
     cursor = db.cursor()
-    sql = "CREATE TABLE " + name + " ( " + audit1 + " " + t1 + " COLLATE utf8_unicode_ci NOT NULL," \
-          + " " + audit2 + " " + t2 + " COLLATE utf8_unicode_ci NOT NULL" + " )"
-    cursor.execute(sql)
-    sql2 = "SELECT count(*) FROM information_schema.tables WHERE table_schema='audit'"
-    cursor.execute(sql2)
-    data = cursor.fetchall()
-    print(data)
-    print(data[0])
-    print("\n")
-    sql3 = "show tables"
-    cursor.execute(sql3)
-    print(cursor.fetchone())
-    data = cursor.fetchall()
-    for i in data:
-        print(i[0])
-    db.close()
 
-    global num
+    name = request.GET['name']
+
+    get = request.GET.copy()
+    get.pop('name')
+    print(len(get))
+    for i in range(len(get) // 2):  # use '//' to transfer the result to integer (if use '/', the result's type is float)
+        input_ = request.GET['input' + str(i)]
+        type_ = request.GET['type' + str(i)]
+        if(type_ == "yes"):
+            # global type_c
+            type_c = "TINYINT(1)"
+        else:
+            type_c = "CHAR(20)"
+        sql_start = "CREATE TABLE " + name + " ( " + input_ + " " + type_c + " COLLATE utf8_unicode_ci NOT NULL" + " )"
+        sql = "ALTER TABLE " + name + " ADD COLUMN " + input_ + " " + type_c + " COLLATE utf8_unicode_ci NOT NULL"
+        print(str(i) + ", "+sql_start)
+        if(i == 0):
+            cursor.execute(sql_start)
+
+        else:
+            cursor.execute(sql)
+            print(sql)
+
+        # sql = "CREATE TABLE " + name + " ( " + input_ + " " + type_c + " COLLATE utf8_unicode_ci NOT NULL," \
+        #       + " " + audit2 + " " + t2 + " COLLATE utf8_unicode_ci NOT NULL" + " )"
+        # cursor.execute(sql)
+    for str_name in get:
+        print(str_name + "," + get[str_name])
+
+    db.close()
 
     return HttpResponse("CREATE TABLE OK\n")
 
@@ -175,3 +205,4 @@ def toSQL():
     cursor.execute(sql_t)
     test = cursor.fetchall()
     print(test)
+
