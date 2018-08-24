@@ -118,8 +118,14 @@ public class ListActivity extends AppCompatActivity {
             bufferedReader = new BufferedReader(
                     new InputStreamReader(fileInputStream));
             String result = "";
+            int line = 0;
             while ((result = bufferedReader.readLine()) != null) {
+                if(line > 0){
+                    stringBuilder.append("\n");  //为了使查看历史纪录界面更加直观，加入换行符。
+                }
                 stringBuilder.append(result);
+                line++;
+
             }
         }
         catch (IOException e) {
@@ -143,7 +149,7 @@ public class ListActivity extends AppCompatActivity {
             @Override
             public void run() {
                 //你的处理逻辑,这里简单睡眠一秒
-                String url = "http://183.60.167.132:8000/audit/dblist";
+                String url = "http://183.60.167.132:8000/inspection/dblist";
                 HttpRequest.httpRequest_1(url, ListActivity.this, new HttpRequest.HttpCallback() {
                     @Override
                     public void onSuccess(final String response) {
@@ -171,7 +177,7 @@ public class ListActivity extends AppCompatActivity {
             @Override
             public void run() {
                 //你的处理逻辑,这里简单睡眠一秒
-                String url = "http://183.60.167.132:8000/audit/" + name;
+                String url = "http://183.60.167.132:8000/inspection/" + name;
                 HttpRequest.httpRequest_2(url, ListActivity.this, new HttpRequest.HttpCallback2() {
                     @Override
                     public void onSuccess(final Item item) {

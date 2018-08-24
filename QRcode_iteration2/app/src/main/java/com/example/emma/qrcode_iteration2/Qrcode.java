@@ -4,18 +4,9 @@ public class Qrcode {
     private int id;
     private String name;
 
-    public Qrcode(int id, String name) {
+    public Qrcode(String name) {
         super();
-        this.id = id;
         this.name = name;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
     }
 
     public String getName() {
@@ -27,6 +18,6 @@ public class Qrcode {
     }
 
     public String toString() {
-        return "id: " + id + ", name: " + name;
+        return "name: " + name;
     }
 }

@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.constraint.ConstraintLayout;
 import android.support.v7.app.AppCompatActivity;
+import android.text.format.Time;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -27,6 +28,8 @@ import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * Created by touchzy on 2018/3/20.
@@ -45,9 +48,9 @@ public class ParamActivity extends AppCompatActivity{
     private int id;
     private String name;
     private String str_T;
-    private String[] Tname;
+    private String[] Tname;  //包含所有区域名称的数组
     private Button[] btn;
-
+    private int input_num;
 
     private TextView display;
     private ImageView imageView;
@@ -70,12 +73,11 @@ public class ParamActivity extends AppCompatActivity{
 
         layout = (ConstraintLayout)findViewById(R.id.parent);
         linear = (LinearLayout)findViewById(R.id.linearLayout);
-        linear2 = (LinearLayout)findViewById(R.id.linearLayout2);
+//        linear2 = (LinearLayout)findViewById(R.id.linearLayout2);
 
         Button scan = (Button)findViewById(R.id.scan);
         Button list = (Button)findViewById(R.id.list);
         final TextView param = (TextView)findViewById(R.id.param);
-        display = (TextView)findViewById(R.id.display);
         Button submit = (Button)findViewById(R.id.submit);
 
         btn = new Button[MAX];
@@ -85,35 +87,15 @@ public class ParamActivity extends AppCompatActivity{
 //        Tname = str_T.split(" ");
 //        Log.d("length", "" + Tname.length);
         UpdateScreen(btn);
-//        for(int i = 0; i < Tname.length; i++){
-//            btn[i] = new Button(this);
-//            btn[i].setText(Tname[i]);
-//            linear.addView(btn[i]);
-//            btn[i].setOnClickListener(new View.OnClickListener() {
-//                @Override
-//                public void onClick(View v) {
-//                    if(isInfo[0]) { //#####此处需要修改#####
-//                        AlertDialog alertDialog1 = new AlertDialog.Builder(ParamActivity.this)
-//                                .setTitle("低压配电房")//标题
-//                                .setMessage("输入的数据：\n" + info[0] + "\n")//内容  #####此处需要修改#####
-//                                .setIcon(R.mipmap.ic_launcher)//图标
-//                                .create();
-//                        alertDialog1.show();
-//                    }
-//                    else{
-//                        Toast.makeText(ParamActivity.this, "没有录入数据！", Toast.LENGTH_SHORT).show();
-//                    }
-//                }
-//            });
-//        }
 
-        ImageView iv1 = new ImageView(this);
-        iv1.setImageDrawable(getResources().getDrawable(R.drawable.check));
-        linear2.addView(iv1);
-
-        ImageView iv2 = new ImageView(this);
-        iv2.setImageDrawable(getResources().getDrawable(R.drawable.check));
-        linear2.addView(iv2);
+//        //在右边添加"√"符号来表示已填写
+//        ImageView iv1 = new ImageView(this);
+//        iv1.setImageDrawable(getResources().getDrawable(R.drawable.check));
+//        linear2.addView(iv1);
+//
+//        ImageView iv2 = new ImageView(this);
+//        iv2.setImageDrawable(getResources().getDrawable(R.drawable.check));
+//        linear2.addView(iv2);
 
 //        fet = new FixedEditText(this);
 //        fet.setFixedText("fet1");
@@ -129,11 +111,16 @@ public class ParamActivity extends AppCompatActivity{
                         qrcode = gson.fromJson(resultString, Qrcode.class);
                         //qrcode = JSON.parseObject(resultString, Qrcode.class);
 
-                        id = qrcode.getId();
                         name = qrcode.getName();
 
+                        for(int i = 0; i < Tname.length; i++){
+                            if(name.equals(Tname[i])){
+                                id = i;    //在Tname数组中遍历，获取其id
+                            }
+                        }
+
                         Intent intent = new Intent(ParamActivity.this, InputActivity.class);
-                        intent.putExtra("name", Tname[id - 1]);
+                        intent.putExtra("name", Tname[id]);
                         startActivityForResult(intent, id);
 
                         //param.setText(qrcode.toString());
@@ -145,8 +132,18 @@ public class ParamActivity extends AppCompatActivity{
         submit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                sendRequestWithHttp();
-                Toast.makeText(ParamActivity.this, "提交数据成功！", Toast.LENGTH_SHORT).show();
+                if(input_num == Tname.length){
+                    sendRequestWithHttp();
+                    Toast.makeText(ParamActivity.this, "提交数据成功！", Toast.LENGTH_SHORT).show();
+                }
+                else{
+                    AlertDialog alertDialog1 = new AlertDialog.Builder(ParamActivity.this)
+                            .setTitle("警告")//标题
+                            .setMessage("巡检任务尚未完成，请填写完所有的巡检数据后再提交！\n")  //内容
+                            .setIcon(R.drawable.asking)  //图标
+                            .create();
+                    alertDialog1.show();
+                }
             }
         });
 
@@ -155,7 +152,7 @@ public class ParamActivity extends AppCompatActivity{
             public void onClick(View v) {
                 Intent intent = new Intent();
                 intent.setClass(ParamActivity.this, ListActivity.class);
-                startActivityForResult(intent,10);
+                startActivityForResult(intent,100);
             }
         });
 
@@ -174,15 +171,17 @@ public class ParamActivity extends AppCompatActivity{
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
-        if(requestCode != 10){
+        if(requestCode != 100){
             if(resultCode == RESULT_OK){
-                info[requestCode - 1] = intent.getStringExtra("data_return");
-                isInfo[requestCode - 1] = true;
+                input_num++;
+                info[requestCode] = intent.getStringExtra("data_return");
+                isInfo[requestCode] = true;
                 //imageView.setImageDrawable(getResources().getDrawable(R.drawable.check));
 
-                info_json[requestCode - 1] = intent.getStringExtra("info");
-                json[requestCode - 1] = intent.getStringExtra("json");
+                info_json[requestCode] = intent.getStringExtra("info");
+                json[requestCode] = intent.getStringExtra("json");
                 //display.setText(info[0]);
+                btn[requestCode].setBackgroundColor(0xffffffff);
             }
         }
         else{
@@ -210,7 +209,8 @@ public class ParamActivity extends AppCompatActivity{
 //        }
     }
 
-    private void UpdateScreen(Button[] btn){
+    private void UpdateScreen(Button[] btn){   //更新主界面按钮
+        input_num = 0;
         str_T = ListActivity.loadDataFromFile(ParamActivity.this, "table");
         Tname = str_T.split(" ");
         for(int i = 0; i < Tname.length; i++){
@@ -221,19 +221,20 @@ public class ParamActivity extends AppCompatActivity{
             btn[i].setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if(isInfo[finalI]) { //#####此处需要修改#####
-                        AlertDialog alertDialog1 = new AlertDialog.Builder(ParamActivity.this)
+                    if(isInfo[finalI]) {
+                        AlertDialog alertDialog = new AlertDialog.Builder(ParamActivity.this)
                                 .setTitle(Tname[finalI])//标题
-                                .setMessage("输入的数据：\n" + info[finalI] + "\n")//内容  #####此处需要修改#####
-                                .setIcon(R.mipmap.ic_launcher)//图标
+                                .setMessage("输入的数据：\n" + info[finalI] + "\n")  //内容
+                                .setIcon(R.mipmap.ic_launcher)  //图标
                                 .create();
-                        alertDialog1.show();
+                        alertDialog.show();
                     }
                     else{
                         Toast.makeText(ParamActivity.this, "没有录入数据！", Toast.LENGTH_SHORT).show();
                     }
                 }
             });
+
         }
     }
 
@@ -244,7 +245,7 @@ public class ParamActivity extends AppCompatActivity{
                 HttpURLConnection connection = null;
                 BufferedReader reader = null;
                 try{
-                    URL url = new URL("http://183.60.167.132:8000/audit/upload");
+                    URL url = new URL("http://183.60.167.132:8000/inspection/upload");
                     connection = (HttpURLConnection)url.openConnection();
                     connection.setRequestMethod("POST");
                     connection.setConnectTimeout(8000);
@@ -257,20 +258,21 @@ public class ParamActivity extends AppCompatActivity{
                             message += ",";
                         }
                     }
+
                     message += "}";
                     Log.d("message", message);
-                    String test_m = "{\"机房\":{\"温度\":\"526\",\"是否\":\"公交卡\"},\"测试\":{\"项目1\":\"865\",\"项目2\":\"得分\"}}";
+//                    String test_m = "{\"机房\":{\"温度\":\"526\",\"是否\":\"公交卡\"},\"测试\":{\"项目1\":\"865\",\"项目2\":\"得分\"}}";
                     out.write(message.getBytes());
                     //out.writeUTF(test_m);
                     //out.writeBytes(test_m);
-
+//
                     InputStream in = connection.getInputStream();
                 }catch (Exception e){
                     e.printStackTrace();
                 }finally {
 
                 }
-//                try{
+//                try{   //okHttpClient连接服务器，发送POST数据
 //                    OkHttpClient client = new OkHttpClient();
 //                    RequestBody requestBody = new FormBody.Builder()
 //                            .add("name", "admin")
