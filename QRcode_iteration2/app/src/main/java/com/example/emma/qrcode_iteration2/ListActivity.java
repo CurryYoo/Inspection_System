@@ -8,10 +8,10 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -32,8 +32,10 @@ public class ListActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list);
 
-        Button download = (Button)findViewById(R.id.download);
-        download.setOnClickListener(new View.OnClickListener() {
+        Button download_items = (Button)findViewById(R.id.download_items);
+        Button download_data = (Button)findViewById(R.id.download_data);
+
+        download_items.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 httpRequest_T(new HttpRequest.HttpCallback() {
@@ -57,8 +59,47 @@ public class ListActivity extends AppCompatActivity {
                         Intent intent = new Intent();
                         setResult(RESULT_OK, intent);
                         finish();
+                        Toast.makeText(ListActivity.this, "巡检项目下载成功！", Toast.LENGTH_SHORT).show();
                     }
                 });
+            }
+        });
+
+        download_data.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+//                final String name = "联通接入间";
+//                httpRequest_R(name, new HttpRequest.HttpCallback(){
+//                    @Override
+//                    public void onSuccess(String response){
+//                        response.replace(",", "\n");
+//                        saveDataToFile(ListActivity.this, response, name + "_data");
+//                        Log.d("III_", loadDataFromFile(ListActivity.this, name + "_data"));
+//                    }
+//                });
+                httpRequest_T(new HttpRequest.HttpCallback() {
+                    @Override
+                    public void onSuccess(String response) {
+                        Tname = response.split(" ");
+
+                        for(int i = 0; i < Tname.length; i++){
+                            final int finalI = i;
+                            httpRequest_R(Tname[i], new HttpRequest.HttpCallback(){
+                                @Override
+                                public void onSuccess(String response_R){
+                                    saveDataToFile(ListActivity.this, response_R.replace(",", "\n"), Tname[finalI] + "_data");
+                                    Log.d("III_" + finalI, loadDataFromFile(ListActivity.this, Tname[finalI] + "_data" ));
+                                }
+                            });
+                        }
+
+                        Intent intent = new Intent();
+                        setResult(RESULT_OK, intent);
+                        finish();
+                        Toast.makeText(ListActivity.this, "历史数据下载成功！", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
             }
         });
     }
@@ -200,5 +241,32 @@ public class ListActivity extends AppCompatActivity {
 
     }
 
+    public void httpRequest_R(final String name, final HttpRequest.HttpCallback callback) {
+        new Thread(){
+            @Override
+            public void run() {
+                //你的处理逻辑,这里简单睡眠一秒
+                String url = "http://183.60.167.132:8000/inspection/review/" + name;
+                HttpRequest.httpRequest_1(url, ListActivity.this, new HttpRequest.HttpCallback() {
+                    @Override
+                    public void onSuccess(final String response) {
+                        mainHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                callback.onSuccess(response);
+                            }
+                        });
+                    }
+                });
+                try {
+                    this.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }.start();
+
+    }
 
 }

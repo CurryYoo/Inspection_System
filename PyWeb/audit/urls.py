@@ -9,6 +9,7 @@ urlpatterns = [
     path('download/', views.file_download, name='download'),
     path('dblist/', views.dblist, name='dblist'),
     path('upload', views.upload, name='upload'),
+    path('review/<str:item_name>/', views.review, name='review'),
     path('<str:item_name>/', views.items, name='item_name'),
 
 ]

@@ -1,6 +1,12 @@
 import io
 import json
+import os
 import qrcode
+import PIL
+from PIL import Image
+from PIL import ImageDraw
+from PIL import ImageFont
+
 import xlwt as xlwt
 from django.shortcuts import render, render_to_response
 from django.http import HttpResponse, StreamingHttpResponse
@@ -8,6 +14,7 @@ import pymysql
 from django.views.decorators.csrf import csrf_exempt
 
 path = "/home/PycharmProjects/PyWeb/images"
+logo = "/home/PycharmProjects/PyWeb/app_logo.jpg"
 
 
 def home(request):
@@ -86,7 +93,7 @@ def submit(request):
     cursor = db.cursor()
 
     name = request.GET['name']
-    sql_start = "CREATE TABLE `" + name + "` ( 日期 CHAR(20) COLLATE utf8_unicode_ci NOT NULL, 时间 CHAR(20) COLLATE utf8_unicode_ci NOT NULL )"
+    sql_start = "CREATE TABLE `" + name + "` (id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY, 日期 CHAR(20) COLLATE utf8_unicode_ci NOT NULL, 时间 CHAR(20) COLLATE utf8_unicode_ci NOT NULL )"
     cursor.execute(sql_start)
     print(sql_start)
     global filename
@@ -104,16 +111,38 @@ def submit(request):
         else:
             type_c = "CHAR(20)"
         # sql_start = "CREATE TABLE " + name + " ( " + input_ + " " + type_c + " COLLATE utf8_unicode_ci NOT NULL" + " )"
-        sql = "ALTER TABLE `" + name + "` ADD COLUMN `" + input_ + "` " + type_c + " COLLATE utf8_unicode_ci NOT NULL"
-
+        sql = "ALTER TABLE `" + name + "` ADD COLUMN `" + input_ + "` " + type_c + " COLLATE utf8_unicode_ci"
         cursor.execute(sql)
         print(sql)
 
         # sql = "CREATE TABLE " + name + " ( " + input_ + " " + type_c + " COLLATE utf8_unicode_ci NOT NULL," \
         #       + " " + audit2 + " " + t2 + " COLLATE utf8_unicode_ci NOT NULL" + " )"
         # cursor.execute(sql)
-    for str_name in get:
-        print(str_name + "," + get[str_name])
+    sql_extra = "ALTER TABLE `" + name + "` ADD COLUMN `备注` CHAR(255) COLLATE utf8_unicode_ci"
+    cursor.execute(sql_extra)
+    print(sql_extra)
+
+    sql_procedure = '''
+                CREATE PROCEDURE %s()
+                BEGIN
+                SET @news_count = (SELECT COUNT(id) FROM %s);
+                IF(@news_count>500) THEN
+                SET @max_id = (SELECT MAX(id) FROM %s);
+                SET @max_id = @max_id - 500;
+                DELETE FROM `%s` WHERE id<=@max_id;
+                END IF;
+                END
+                ''' % ("pro_"+name, name, name, name)
+    sql_event = '''
+                CREATE EVENT IF NOT EXISTS %s
+                ON SCHEDULE EVERY 10 DAY
+                ON COMPLETION PRESERVE
+                DO CALL %s();
+                ''' % ("event_" + name, "pro_" + name)
+    sql_enable = "alter event %s on completion preserve enable;" % ("event_" + name)
+    cursor.execute(sql_procedure)
+    cursor.execute(sql_event)
+    cursor.execute(sql_enable)    
 
     db.close()
 
@@ -125,7 +154,7 @@ def submit(request):
 def generate(request, name):
     message = '{"name":"%s"}' % name
     qr = qrcode.QRCode(version=3,
-                       error_correction=qrcode.ERROR_CORRECT_M,
+                       error_correction=qrcode.ERROR_CORRECT_H,
                        box_size=8,
                        border=4,
                        )
@@ -134,24 +163,31 @@ def generate(request, name):
     img = qr.make_image()
     img = img.convert("RGBA")
 
-    # if logo and os.path.exists(logo):
-    #     icon = Image.open(logo)
-    #     img_w, img_h = img.size
-    #     factor = 4
-    #     size_w = int(img_w / factor)
-    #     size_h = int(img_h / factor)
-    #
-    #     icon_w, icon_h = icon.size
-    #     if icon_w > size_w:
-    #         icon_w = size_w
-    #     if icon_h > size_h:
-    #         icon_h = size_h
-    #     icon = icon.resize((icon_w, icon_h), Image.ANTIALIAS)
-    #
-    #     w = int((img_w - icon_w) / 2)
-    #     h = int((img_h - icon_h) / 2)
-    #     icon = icon.convert("RGBA")
-    #     img.paste(icon, (w, h), icon)
+    if logo and os.path.exists(logo):
+        icon = Image.open(logo)
+        global img_w, img_h
+        img_w, img_h = img.size
+        factor = 4
+        size_w = int(img_w / factor)
+        size_h = int(img_h / factor)
+    
+        icon_w, icon_h = icon.size
+        if icon_w > size_w:
+            icon_w = size_w
+        if icon_h > size_h:
+            icon_h = size_h
+        icon = icon.resize((icon_w, icon_h), Image.ANTIALIAS)
+    
+        w = int((img_w - icon_w) / 2)
+        h = int((img_h - icon_h) / 2)
+        icon = icon.convert("RGBA")
+        img.paste(icon, (w, h), icon)
+
+    font = ImageFont.truetype("usr/share/fonts/local/STKAITI.TTF", 24)
+    draw = ImageDraw.Draw(img)
+    text_x = int((img_w - font.getsize(name)[0]) / 2)
+    draw.text((text_x, 0), name, (0, 0, 0), font=font)
+    draw = ImageDraw.Draw(img)
 
     img.save(path + "/%s.png" % name)
 
@@ -210,7 +246,7 @@ def items(request, item_name):
     type = []
     for i in desc:
         print(i[0] + "+" + i[1])
-        if((i[0] != "日期") and (i[0] != "时间")):
+        if((i[0] != "日期") and (i[0] != "时间") and (i[0] != "id")):
             item.append(i[0])
             if(i[1] == "tinyint(1)"):
                 type.append("bool")
@@ -224,6 +260,26 @@ def items(request, item_name):
 
 def toJson(item, type):
     return '{"items":"%s",' % ','.join(item) + '"type":"%s"}' % ','.join(type)
+
+
+def review(request, item_name):
+    db = pymysql.connect("localhost", "root", "root", "audit")
+    cursor = db.cursor()
+    sql_desc = "DESC `" + item_name + "`"
+    print(sql_desc)
+    cursor.execute(sql_desc)
+    desc = cursor.fetchall()
+    print(desc)
+    str_response = ""
+    for i in desc:
+        print(i[0])
+        sql_review = "select `" + i[0] +"` from `" + item_name + "` order by id desc limit 1"
+        cursor.execute(sql_review)
+        review_data = cursor.fetchone()
+        print(review_data[0])  # data
+        str_response += i[0] + ":" + str(review_data[0]) + ","
+
+    return HttpResponse(str_response[:-1])
 
 
 @csrf_exempt

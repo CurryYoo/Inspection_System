@@ -10,7 +10,8 @@
 
             <form name="form1" action="/inspection/submit/" method="get">
                 <input type="submit" value="提交">
-                <button id="btn" type="button" onclick="btn_click()">添加</button>
+                <button id="btn" type="button" onclick="btn_click()"> + </button>
+                <button id="btn1" type="button" onclick="del_text()"> - </button>
                 <br>
                 <h2>名称</h2>
                 <input type="text" name="name" size="20"/>
@@ -56,6 +57,16 @@
 
         newTxt.style.display = "block";  //给input设置block属性
         newTxt.style.marginTop = "10px";      //marginTop距离上一个输入框的距离
-    };
+    }
+    function del_text() {
+        if (input > 1) { // If there's more than one text box
+            // Remove the last one added
+            var node_Text = document.getElementsByName("input" + (input-1));
+            node_Text[0].remove();
+            var node_Select = document.getElementsByName("type" + (input-1));
+            node_Select[0].remove();
+            input--;
+        }
+    }
 
 </script>
